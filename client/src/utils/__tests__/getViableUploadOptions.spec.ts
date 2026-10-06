@@ -57,9 +57,9 @@ describe('getViableUploadOptions', () => {
       ]);
     });
 
-    it('offers every destination for a PDF', () => {
+    // company: provider attachments ("Add Photos") are images only (see COMPANY.md)
+    it('offers every tool destination for a PDF, but not the provider (images only)', () => {
       expect(getViableUploadOptions([file('application/pdf', 'doc.pdf')], baseCtx())).toEqual([
-        undefined,
         EToolResources.file_search,
         EToolResources.execute_code,
         EToolResources.context,
@@ -72,11 +72,14 @@ describe('getViableUploadOptions', () => {
       ]);
     });
 
-    it('attaches a PDF directly to the provider when capabilities are off', () => {
+    it('does not attach a PDF directly to the provider even when capabilities are off (images only)', () => {
       const ctx = baseCtx({ fileSearchEnabled: false, codeEnabled: false, contextEnabled: false });
-      expect(getViableUploadOptions([file('application/pdf', 'doc.pdf')], ctx)).toEqual([
-        undefined,
-      ]);
+      expect(getViableUploadOptions([file('application/pdf', 'doc.pdf')], ctx)).toEqual([]);
+    });
+
+    it('attaches an image directly to the provider ("Add Photos")', () => {
+      const ctx = baseCtx({ fileSearchEnabled: false, codeEnabled: false, contextEnabled: false });
+      expect(getViableUploadOptions([file('image/png', 'photo.png')], ctx)).toEqual([undefined]);
     });
 
     it('returns nothing for a spreadsheet when no capabilities are enabled', () => {
@@ -86,7 +89,8 @@ describe('getViableUploadOptions', () => {
   });
 
   describe('provider-specific direct attachment', () => {
-    it('lets Google attach video directly', () => {
+    // company: provider-specific direct attach is narrowed to images (see COMPANY.md)
+    it('does not let Google attach video directly (provider attach is images only)', () => {
       const ctx = baseCtx({
         provider: 'google',
         endpoint: 'google',
@@ -95,7 +99,7 @@ describe('getViableUploadOptions', () => {
         codeEnabled: false,
         contextEnabled: false,
       });
-      expect(getViableUploadOptions([file('video/mp4', 'clip.mp4')], ctx)).toEqual([undefined]);
+      expect(getViableUploadOptions([file('video/mp4', 'clip.mp4')], ctx)).toEqual([]);
     });
 
     it('does not let Anthropic attach video directly', () => {
@@ -107,7 +111,7 @@ describe('getViableUploadOptions', () => {
       expect(getViableUploadOptions([file('video/mp4', 'clip.mp4')], ctx)).toEqual([]);
     });
 
-    it('lets Bedrock attach a spreadsheet directly via its document allowlist', () => {
+    it('does not let Bedrock attach a spreadsheet directly (provider attach is images only)', () => {
       const ctx = baseCtx({
         provider: 'bedrock',
         endpoint: 'bedrock',
@@ -116,10 +120,10 @@ describe('getViableUploadOptions', () => {
         codeEnabled: false,
         contextEnabled: false,
       });
-      expect(getViableUploadOptions([file(XLSX, 'report.xlsx')], ctx)).toEqual([undefined]);
+      expect(getViableUploadOptions([file(XLSX, 'report.xlsx')], ctx)).toEqual([]);
     });
 
-    it('honors a permissive custom endpoint config for direct attach', () => {
+    it('does not honor a permissive custom endpoint config for non-image direct attach', () => {
       const ctx = baseCtx({
         provider: 'MyGateway',
         endpoint: 'MyGateway',
@@ -129,10 +133,10 @@ describe('getViableUploadOptions', () => {
         contextEnabled: false,
         endpointSupportedMimeTypes: [/.*/],
       });
-      expect(getViableUploadOptions([file(XLSX, 'report.xlsx')], ctx)).toEqual([undefined]);
+      expect(getViableUploadOptions([file(XLSX, 'report.xlsx')], ctx)).toEqual([]);
     });
 
-    it('offers direct attach for a video when the custom config explicitly allows video', () => {
+    it('does not offer direct attach for a video even when the custom config allows video (images only)', () => {
       const ctx = baseCtx({
         provider: 'MyGateway',
         endpoint: 'MyGateway',
@@ -142,8 +146,9 @@ describe('getViableUploadOptions', () => {
         contextEnabled: false,
         endpointSupportedMimeTypes: [/^image\/.*$/, /^application\/pdf$/, /^video\/.*$/],
       });
-      expect(getViableUploadOptions([file('video/mp4', 'clip.mp4')], ctx)).toEqual([undefined]);
+      expect(getViableUploadOptions([file('video/mp4', 'clip.mp4')], ctx)).toEqual([]);
       expect(getViableUploadOptions([file('audio/wav', 'tone.wav')], ctx)).toEqual([]);
+      expect(getViableUploadOptions([file('image/png', 'photo.png')], ctx)).toEqual([undefined]);
     });
 
     it('does not offer video for a custom endpoint that inherits the default config', () => {

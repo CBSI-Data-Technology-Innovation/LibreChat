@@ -81,7 +81,8 @@ async function attachCodeFile(page: Page) {
     page.waitForEvent('filechooser'),
     (async () => {
       await page.getByRole('button', { name: 'Attach File Options' }).click();
-      await page.getByRole('menuitem', { name: 'Upload to Code Environment' }).click();
+      // company: menu item renamed to "Add Files" (see COMPANY.md)
+      await page.getByRole('menuitem', { name: 'Add Files' }).click();
     })(),
   ]);
   const [upload] = await Promise.all([

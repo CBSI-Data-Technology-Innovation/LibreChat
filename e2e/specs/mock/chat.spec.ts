@@ -59,10 +59,11 @@ const composer = (page: Page) => page.locator('form');
 
 async function openProviderFileChooser(page: Page) {
   await page.getByRole('button', { name: 'Attach File Options' }).click();
-  await expect(page.getByText('Upload to Provider')).toBeVisible();
+  // company: menu item renamed to "Add Photos" (see COMPANY.md)
+  await expect(page.getByText('Add Photos')).toBeVisible();
 
   const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Upload to Provider').click();
+  await page.getByText('Add Photos').click();
   const fileChooser = await fileChooserPromise;
   expect(await fileChooser.element().getAttribute('type')).toBe('file');
   return fileChooser;

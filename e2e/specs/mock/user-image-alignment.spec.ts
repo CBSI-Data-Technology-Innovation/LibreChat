@@ -31,7 +31,8 @@ test('keeps uploaded user images on the right side of a wider message bubble', a
 
   await page.getByRole('button', { name: 'Attach File Options' }).click();
   const chooser = page.waitForEvent('filechooser');
-  await page.getByText('Upload to Provider').click();
+  // company: menu item renamed to "Add Photos" (see COMPANY.md)
+  await page.getByText('Add Photos').click();
   const fileChooser = await chooser;
   const upload = page.waitForResponse(
     (response) =>

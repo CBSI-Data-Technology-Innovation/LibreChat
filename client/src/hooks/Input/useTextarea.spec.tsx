@@ -1122,3 +1122,76 @@ describe('useTextarea clipboard routing in unified mode', () => {
     expect(mockOpenModal).not.toHaveBeenCalled();
   });
 });
+
+// company: image-only pastes go straight to the provider ("Add Photos") in legacy mode (see COMPANY.md)
+describe('useTextarea clipboard image paste in legacy mode', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    mockIndex = 0;
+    mockIsSubmitting = false;
+    mockIsUploadConfigPending = false;
+    mockIsUnifiedMode = false;
+    mockConversation = { endpoint: 'openAI', conversationId: 'convo-1' };
+  });
+
+  const paste = (files: File[]) => {
+    const { result } = renderTextareaHook();
+    act(() =>
+      result.current.handlePaste(
+        createPasteEvent(files) as unknown as React.ClipboardEvent<HTMLTextAreaElement>,
+      ),
+    );
+  };
+
+  it('uploads pasted images to the provider without the chooser when code is also viable', async () => {
+    mockGetUploadOptions.mockReturnValue([
+      undefined,
+      EToolResources.execute_code,
+    ] as EToolResources[]);
+    mockRouteFiles.mockResolvedValueOnce(true);
+
+    paste([
+      new File(['png'], 'screenshot.png', { type: 'image/png' }),
+      new File(['jpg'], 'photo.jpg', { type: 'image/jpeg' }),
+    ]);
+
+    await waitFor(() => expect(mockRouteFiles).toHaveBeenCalledTimes(1));
+    expect(mockRouteFiles.mock.calls[0][0]).toHaveLength(2);
+    expect(mockRouteFiles.mock.calls[0][1]).toBeUndefined();
+    expect(mockOpenModal).not.toHaveBeenCalled();
+  });
+
+  it('still opens the chooser for a pasted PDF with several destinations', async () => {
+    mockGetUploadOptions.mockReturnValue([EToolResources.file_search, EToolResources.execute_code]);
+
+    paste([new File(['%PDF-'], 'report.pdf', { type: 'application/pdf' })]);
+
+    await waitFor(() => expect(mockOpenModal).toHaveBeenCalledTimes(1));
+    expect(mockRouteFiles).not.toHaveBeenCalled();
+  });
+
+  it('still opens the chooser for a pasted image when the provider is not viable', async () => {
+    mockGetUploadOptions.mockReturnValue([EToolResources.execute_code, EToolResources.context]);
+
+    paste([new File(['png'], 'screenshot.png', { type: 'image/png' })]);
+
+    await waitFor(() => expect(mockOpenModal).toHaveBeenCalledTimes(1));
+    expect(mockRouteFiles).not.toHaveBeenCalled();
+  });
+
+  it('still shows the unsupported toast when nothing fits', async () => {
+    mockGetUploadOptions.mockReturnValue([]);
+
+    paste([new File(['x'], 'archive.bin', { type: 'application/octet-stream' })]);
+
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith({
+        message: 'com_error_files_unsupported',
+        status: 'error',
+      }),
+    );
+    expect(mockRouteFiles).not.toHaveBeenCalled();
+    expect(mockOpenModal).not.toHaveBeenCalled();
+  });
+});

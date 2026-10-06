@@ -628,7 +628,8 @@ export const getViableUploadOptions = (
     types.every((type) => predicate(type as string));
 
   const options: (EToolResources | undefined)[] = [];
-  if (every((type) => isProviderAttachType(type, ctx))) {
+  // company: provider attachments ("Add Photos") are restricted to images (see COMPANY.md)
+  if (every((type) => type.startsWith('image/') && isProviderAttachType(type, ctx))) {
     options.push(undefined);
   }
   if (

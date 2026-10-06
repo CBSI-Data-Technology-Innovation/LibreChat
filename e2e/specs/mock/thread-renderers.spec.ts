@@ -115,9 +115,10 @@ async function sendAndExpectReply(page: Page, prompt: string, expectedReply: str
 
 async function uploadProviderFile(page: Page) {
   await page.getByRole('button', { name: 'Attach File Options' }).click();
-  await expect(page.getByText('Upload to Provider')).toBeVisible();
+  // company: menu item renamed to "Add Photos" (see COMPANY.md)
+  await expect(page.getByText('Add Photos')).toBeVisible();
   const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Upload to Provider').click();
+  await page.getByText('Add Photos').click();
   const fileChooser = await fileChooserPromise;
   const uploadResponse = page.waitForResponse(
     (response) =>

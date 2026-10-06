@@ -46,7 +46,8 @@ test.describe('file provisioning — immediate (legacy dropdown)', () => {
     await enableCodeInterpreter(page);
 
     const fileName = `${uniqueName('code')}.csv`;
-    const response = await uploadViaLegacyOption(page, 'Upload to Code Environment', {
+    // company: menu item renamed to "Add Files" (see COMPANY.md)
+    const response = await uploadViaLegacyOption(page, 'Add Files', {
       name: fileName,
       mimeType: 'text/csv',
       content: 'x,y\n1,2\n',

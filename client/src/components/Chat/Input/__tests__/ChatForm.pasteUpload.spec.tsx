@@ -160,6 +160,21 @@ const pasteImage = (textarea: HTMLElement) => {
   fireEvent(textarea, event);
 };
 
+// company: image pastes skip the chooser, so the legacy chooser tests paste a PDF (see COMPANY.md)
+const pastePdf = (textarea: HTMLElement) => {
+  const file = new File(['%PDF-'], 'pasted.pdf', { type: 'application/pdf' });
+  const event = new Event('paste', { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'clipboardData', {
+    value: {
+      files: [file],
+      items: [{ kind: 'file', type: 'application/pdf', getAsFile: () => file }],
+      types: ['Files'],
+      getData: () => '',
+    },
+  });
+  fireEvent(textarea, event);
+};
+
 /**
  * The upload-destination dialog is opened by the paste itself, so Radix has no
  * trigger to return focus to when it closes and used to leave focus on
@@ -191,8 +206,8 @@ describe('composer focus after a pasted upload', () => {
     await userEvent.type(textarea, 'hi');
     expect(textarea).toHaveFocus();
 
-    pasteImage(textarea);
-    const [option] = await screen.findAllByRole('button', { name: /upload/i });
+    pastePdf(textarea);
+    const [option] = await screen.findAllByRole('button', { name: /upload for file search/i });
     expect(textarea).not.toHaveFocus();
 
     await userEvent.click(option);
@@ -207,8 +222,8 @@ describe('composer focus after a pasted upload', () => {
     await userEvent.click(textarea);
     await userEvent.type(textarea, 'hi');
 
-    pasteImage(textarea);
-    const [option] = await screen.findAllByRole('button', { name: /upload/i });
+    pastePdf(textarea);
+    const [option] = await screen.findAllByRole('button', { name: /upload for file search/i });
     await userEvent.click(option);
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByTestId('send-button')).toBeEnabled());

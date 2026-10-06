@@ -60,7 +60,8 @@ const DragDropModal = () => {
         };
       case EToolResources.execute_code:
         return {
-          label: localize('com_ui_upload_code_environment'),
+          // company: renamed from com_ui_upload_code_environment (see COMPANY.md)
+          label: localize('com_ui_add_files'),
           icon: <TerminalSquareIcon className="icon-md" />,
         };
       case EToolResources.context:
@@ -69,13 +70,14 @@ const DragDropModal = () => {
           icon: <FileType2Icon className="icon-md" />,
         };
       default:
+        // company: renamed from com_ui_upload_provider / com_ui_upload_image_input (see COMPANY.md)
         return isProviderDocSupported
           ? {
-              label: localize('com_ui_upload_provider'),
+              label: localize('com_ui_add_photos'),
               icon: <FileImageIcon className="icon-md" />,
             }
           : {
-              label: localize('com_ui_upload_image_input'),
+              label: localize('com_ui_add_photos'),
               icon: <ImageUpIcon className="icon-md" />,
             };
     }

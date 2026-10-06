@@ -17,15 +17,12 @@ import {
   SharePointIcon,
 } from '@librechat/client';
 import {
-  Providers,
   EToolResources,
   EModelEndpoint,
-  isExplicitMimeConfig,
   getConfiguredMimeAccept,
   bedrockDocumentMimeTypes,
   defaultAgentCapabilities,
   bedrockDocumentExtensions,
-  isDocumentSupportedProvider,
 } from 'librechat-data-provider';
 import type {
   TConversation,
@@ -43,9 +40,9 @@ import {
 import { useSharePointFileHandlingNoChatContext } from '~/hooks/Files/useSharePointFileHandling';
 import { useShortcutAriaKey, useShortcutHint } from '~/hooks/useKeyboardShortcuts';
 import { SharePointPickerDialog } from '~/components/SharePoint';
+import { MenuItemProps, isEphemeralAgent } from '~/common';
 import { useGetStartupConfig } from '~/data-provider';
 import { ephemeralAgentByConvoId } from '~/store';
-import { MenuItemProps } from '~/common';
 import { cn } from '~/utils';
 
 type FileUploadType =
@@ -94,13 +91,10 @@ interface AttachFileMenuProps {
 
 const AttachFileMenu = ({
   agentId,
-  endpoint,
   disabled,
-  endpointType,
   conversationId,
   endpointFileConfig,
   isUnifiedMode,
-  useResponsesApi,
   files,
   setFiles,
   setFilesLoading,
@@ -140,10 +134,15 @@ const AttachFileMenu = ({
    * */
   const capabilities = useAgentCapabilities(agentsConfig?.capabilities ?? defaultAgentCapabilities);
 
-  const { fileSearchAllowedByAgent, codeAllowedByAgent, provider } = useAgentToolPermissions(
+  const { fileSearchAllowedByAgent, codeAllowedByAgent } = useAgentToolPermissions(
     agentId,
     ephemeralAgent,
   );
+
+  // company: ephemeral chats offer File Search / Add Files regardless of toggles; saved agents gate on their tools (see COMPANY.md)
+  const isSavedAgent = agentId != null && agentId !== '' && !isEphemeralAgent(agentId);
+  const fileSearchOfferable = !isSavedAgent || fileSearchAllowedByAgent;
+  const codeOfferable = !isSavedAgent || codeAllowedByAgent;
 
   const handleUploadClick = useCallback(
     (fileType?: FileUploadType) => {
@@ -158,7 +157,8 @@ const AttachFileMenu = ({
               fileTypeCapabilities[fileType],
             )
           : undefined;
-      if (configuredAccept != null) {
+      // company: 'image' never widens to a permissive accept, so "Add Photos" stays images-only (see COMPANY.md)
+      if (configuredAccept != null && !(fileType === 'image' && configuredAccept === '')) {
         inputRef.current.accept = configuredAccept;
       } else if (fileType === 'image') {
         inputRef.current.accept = 'image/*,.heif,.heic';
@@ -218,55 +218,15 @@ const AttachFileMenu = ({
     const createMenuItems = (onAction: (fileType?: FileUploadType) => void) => {
       const items: MenuItemProps[] = [];
 
-      let currentProvider = provider || endpoint;
-
-      // This will be removed in a future PR to formally normalize Providers comparisons to be case insensitive
-      if (currentProvider?.toLowerCase() === Providers.OPENROUTER) {
-        currentProvider = Providers.OPENROUTER;
-      }
-
-      const isAzureWithResponsesApi =
-        (currentProvider === EModelEndpoint.azureOpenAI ||
-          endpointType === EModelEndpoint.azureOpenAI) &&
-        useResponsesApi === true;
-
-      if (
-        isDocumentSupportedProvider(endpointType) ||
-        isDocumentSupportedProvider(currentProvider) ||
-        isAzureWithResponsesApi
-      ) {
-        items.push({
-          label: localize('com_ui_upload_provider'),
-          onClick: () => {
-            setToolResource(undefined);
-            let fileType: Exclude<FileUploadType, 'image' | 'document'> = 'image_document';
-            if (currentProvider === Providers.GOOGLE || currentProvider === Providers.OPENROUTER) {
-              fileType = 'image_document_video_audio';
-            } else if (
-              currentProvider === Providers.BEDROCK ||
-              endpointType === EModelEndpoint.bedrock
-            ) {
-              fileType = 'image_document_extended';
-            } else if (
-              endpointType === EModelEndpoint.custom &&
-              isExplicitMimeConfig(endpointFileConfig?.supportedMimeTypes)
-            ) {
-              fileType = 'image_document_video_audio_configured';
-            }
-            onAction(fileType);
-          },
-          icon: <FileImageIcon className="icon-md" />,
-        });
-      } else {
-        items.push({
-          label: localize('com_ui_upload_image_input'),
-          onClick: () => {
-            setToolResource(undefined);
-            onAction('image');
-          },
-          icon: <ImageUpIcon className="icon-md" />,
-        });
-      }
+      // company: single "Add Photos" item replaces upstream's provider/image branching (see COMPANY.md)
+      items.push({
+        label: localize('com_ui_add_photos'),
+        onClick: () => {
+          setToolResource(undefined);
+          onAction('image');
+        },
+        icon: <ImageUpIcon className="icon-md" />,
+      });
 
       if (capabilities.contextEnabled) {
         items.push({
@@ -279,7 +239,7 @@ const AttachFileMenu = ({
         });
       }
 
-      if (capabilities.fileSearchEnabled && fileSearchAllowedByAgent) {
+      if (capabilities.fileSearchEnabled && fileSearchOfferable) {
         items.push({
           label: localize('com_ui_upload_file_search'),
           onClick: () => {
@@ -294,9 +254,10 @@ const AttachFileMenu = ({
         });
       }
 
-      if (capabilities.codeEnabled && codeAllowedByAgent) {
+      if (capabilities.codeEnabled && codeOfferable) {
         items.push({
-          label: localize('com_ui_upload_code_environment'),
+          // company: renamed from com_ui_upload_code_environment (see COMPANY.md)
+          label: localize('com_ui_add_files'),
           onClick: () => {
             setToolResource(EToolResources.execute_code);
             setEphemeralAgent((prev) => ({
@@ -331,17 +292,12 @@ const AttachFileMenu = ({
     return localItems;
   }, [
     localize,
-    endpoint,
-    provider,
-    endpointType,
     capabilities,
-    useResponsesApi,
     handleUploadClick,
     setEphemeralAgent,
     sharePointEnabled,
-    endpointFileConfig?.supportedMimeTypes,
-    codeAllowedByAgent,
-    fileSearchAllowedByAgent,
+    codeOfferable,
+    fileSearchOfferable,
     setIsSharePointDialogOpen,
   ]);
 

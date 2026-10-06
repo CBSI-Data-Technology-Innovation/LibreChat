@@ -58,7 +58,8 @@ const randomSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
 async function uploadProviderFile(page: Page, fixture: UploadFixture) {
   await page.getByRole('button', { name: 'Attach File Options' }).click();
-  const uploadOption = page.getByText('Upload to Provider', { exact: true });
+  // company: menu item renamed to "Add Photos" (see COMPANY.md)
+  const uploadOption = page.getByText('Add Photos', { exact: true });
   await expect(uploadOption).toBeVisible();
 
   const fileChooserPromise = page.waitForEvent('filechooser');

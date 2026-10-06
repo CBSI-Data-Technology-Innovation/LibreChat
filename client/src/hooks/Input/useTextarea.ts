@@ -3,7 +3,12 @@ import { v4 } from 'uuid';
 import debounce from 'lodash/debounce';
 import { useToastContext } from '@librechat/client';
 import { useRecoilValue, useRecoilState } from 'recoil';
-import { Constants, EToolResources, isAssistantsEndpoint } from 'librechat-data-provider';
+import {
+  Constants,
+  EToolResources,
+  inferMimeType,
+  isAssistantsEndpoint,
+} from 'librechat-data-provider';
 import type { TEndpointOption } from 'librechat-data-provider';
 import type { KeyboardEvent } from 'react';
 import type { UploadLifecycleCallbacks } from '~/hooks/Files/useFileHandling';
@@ -364,6 +369,14 @@ export default function useTextarea({
           showToast({ message: localize('com_error_files_unsupported'), status: 'error' });
           setFilesLoading(false);
           return false;
+        }
+
+        // company: image-only pastes go straight to the provider ("Add Photos") with no chooser (see COMPANY.md)
+        const allImages = clipboardFiles.every((file) =>
+          inferMimeType(file.name, file.type).startsWith('image/'),
+        );
+        if (preferred == null && allImages && options.includes(undefined)) {
+          return await upload();
         }
 
         const usePreferred = preferred != null && options.includes(preferred);

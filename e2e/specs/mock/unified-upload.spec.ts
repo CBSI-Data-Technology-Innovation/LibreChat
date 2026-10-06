@@ -157,6 +157,7 @@ test.describe('unified file upload', () => {
     // the provider upload; the code/file_search options are gated on those ephemeral
     // capabilities being enabled first).
     await page.locator('#attach-file-menu-button').click();
-    await expect(page.getByText('Upload to Provider')).toBeVisible();
+    // company: menu item renamed to "Add Photos" (see COMPANY.md)
+    await expect(page.getByText('Add Photos')).toBeVisible();
   });
 });
